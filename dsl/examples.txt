@@ -1,44 +1,44 @@
-D: \15/25/25
+D: 05/25/25
 S: PC 5x[3,2,1,1,1] @ [100,105,110,120,130], Pull Ups 3x6
 Front Squat 3x3 @ [90,110,120]
 
-D:05/26/25
+D: 05/26/25
 Hang Power Snatch 5x[3,3,2,1,3] @ [50,55,60,65,50]
 S: BB Bench 4x5 @ [195,205,215,225], Two Way Palloff Press 2x4, DB Row 3x8
 S: Kneeling KB to Military 3x6, Plated Deadbugs 3x12, KB Sidebends 3x6
 
-D:05/28/25
+D: 05/28/25
 Power Clean 3x5 @ [80,90,100]
 S: SB Split Squats 3x5 @ 135, Tuck Jumps 3x4, Tib Raises 3x10
 S: SLRDL 3x6, Skater Squats 2x3, PullUps 3x6
 
-D:05/29/25
+D: 05/29/25
 BB Bench 3x[4,3,3] @ [205,225,235]
 DB Incline Bench 4x8
 DB Lat Raise 4x8
 S: Curls 3x21, Skull crushers 3x10, DB Wrist Curls 3x20
 
-D:05/30/25
+D: 05/30/25
 Front Squat 4x5 @ [100,110,120,120]
 BB RDL 3x6 @ [70,90,100]
 Broad Jump 3x3
 Knee Raises 3x10
 Weighted Plank 3x30sec @ 25kg
 
-D:06/03/25
+D: 06/03/25
 Hang Power Snatch 3x3 @ [55,60,65]
 BB Bench Primer 3x3 @ [165,185,205]
 Rear Delt Flies 3x8
 Power Jerk 3x5 @ [50,55,60]
 Pull Ups 3x8
 
-D:06/04/25
+D: 06/04/25
 Clean 3x[4,3,4] @ [90,100,110]
 BB Back Squat 3x5 @ [110,120,130]
 Lateral Monster Walks 3x10
 Copenhagen Plank 2x30sec
 
-D:06/05/25
+D: 06/05/25
 BB Reverse Lunge 3x5
 Step Up to Tuck Jump 3x2
 // KB Saquons logged 5/3 (cluster) — using 5
@@ -48,18 +48,18 @@ Palloff Press 2x3
 Plated Deadbugs 3x10
 Plated Russian Twists 3x20
 
-D:06/06/25
+D: 06/06/25
 BB Bench 1x1 @ 260
 KB Kneeling SA Shrug 3x10
 KB Side bends 3x6
 KB Kneeling SA Military 3x8
 N: Finisher — Nickels & Dimes EMOM, 9 rounds: 90 pushups / 42 pullups
 
-D:06/09/25
+D: 06/09/25
 Low Block Clean 5x[2,2,2,1,3] @ [100,105,110,115,90]
 N: Focus — no foot spin, fast second pull
 
-D:06/10/25
+D: 06/10/25
 S: Lat Raise 3x12 @ 20, Rear Delt Flies 3x12 @ 15
 S: Curls 3x[10,8,6] @ [40,45,50], Skull crushers 3x10 @ 60
 BB Bench 3x5 @ 185

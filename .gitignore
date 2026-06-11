@@ -1,11 +1,15 @@
 # Dependencies
 node_modules/
 
+# Build output
+dist/
+
 # DSL runner output
 tests/dsl/output/*.json
 
 # Claude Code
 .claude/
+CLAUDE.md
 
 # macOS
 .DS_Store
