@@ -1,9 +1,11 @@
 import React, { useState, useMemo } from 'react'
 import type { StoredWorkout, View } from '../types.ts'
+import DataToolbar from './DataToolbar.tsx'
 
 interface Props {
   workouts: Record<string, StoredWorkout>
   onNavigate: (view: View) => void
+  onImported: () => void
 }
 
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
@@ -25,7 +27,7 @@ function toMMDDYY(date: Date): string {
   return `${mm}/${dd}/${yy}`
 }
 
-export default function CalendarView({ workouts, onNavigate }: Props) {
+export default function CalendarView({ workouts, onNavigate, onImported }: Props) {
   const today = useMemo(() => new Date(), [])
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth()) // 0-based
@@ -151,6 +153,7 @@ export default function CalendarView({ workouts, onNavigate }: Props) {
           )
         })}
       </div>
+      <DataToolbar onImported={onImported} />
     </div>
   )
 }

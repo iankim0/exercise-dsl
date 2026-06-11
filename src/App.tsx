@@ -64,7 +64,11 @@ export default function App() {
 
       <main className="content">
         {view.type === 'calendar' && (
-          <CalendarView workouts={workouts} onNavigate={navigate} />
+          <CalendarView
+            workouts={workouts}
+            onNavigate={navigate}
+            onImported={() => setWorkouts(loadWorkouts())}
+          />
         )}
 
         {view.type === 'workout' && (() => {
