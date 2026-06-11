@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import type { StoredWorkout } from '../types.ts'
 import type { WorkoutEntry, ExerciseEntry, SetEntry, Unit } from '../../dsl/ast.ts'
+import { serialize } from '../../dsl/serializer.ts'
 
 interface Props {
   workout: StoredWorkout
@@ -48,6 +49,7 @@ function SetRow({ set, onRepsChange, onWeightChange, onUnitToggle }: SetRowProps
         min={1}
         value={repsValue}
         onChange={(e) => onRepsChange(parseInt(e.target.value, 10) || 1)}
+        onFocus={(e) => e.target.select()}
         aria-label={`Set ${set.setNumber} reps`}
       />
       <input
@@ -56,6 +58,7 @@ function SetRow({ set, onRepsChange, onWeightChange, onUnitToggle }: SetRowProps
         step={0.5}
         value={set.weight.value}
         onChange={(e) => onWeightChange(parseFloat(e.target.value) || 0)}
+        onFocus={(e) => e.target.select()}
         aria-label={`Set ${set.setNumber} weight`}
       />
       <button className="unit-toggle" onClick={onUnitToggle} title="Toggle unit">
@@ -130,7 +133,8 @@ export default function VisualEditor({ workout, onSave, onCancel }: Props) {
   }
 
   function handleSave() {
-    onSave({ ...workout, entry: { ...editedEntry, raw: workout.raw } })
+    const raw = serialize(editedEntry)
+    onSave({ ...workout, raw, entry: { ...editedEntry, raw } })
   }
 
   return (
