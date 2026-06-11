@@ -1,0 +1,10 @@
+{
+  "type": "module",
+  "scripts": {
+    "test": "vitest",
+    "run:dsl": "node --experimental-strip-types --no-warnings tests/dsl/run.ts"
+  },
+  "devDependencies": {
+    "vitest": "^4.1.8"
+  }
+}

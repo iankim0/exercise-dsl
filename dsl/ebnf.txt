@@ -1,0 +1,62 @@
+(* ---------- Document ---------- *)
+workout        = line , { newline , line } ;
+
+line           = blank-line
+               | comment-line
+               | date-line
+               | note-line
+               | superset-line
+               | exercise-line ;
+
+(* ---------- Trivial lines ---------- *)
+blank-line     = { ws } ;                        (* empty or all-whitespace *)
+comment-line   = { ws } , "//" , { any-char } ;  (* whole line ignored *)
+
+(* ---------- Special lines ---------- *)
+date-line      = { ws } , "D:" , { ws } , date ;
+note-line      = { ws } , "N:" , { ws } , free-text ;
+superset-line  = { ws } , "S:" , { ws } ,
+                 exercise-spec ,
+                 { { ws } , "," , { ws } , exercise-spec } ;
+
+(* ---------- Exercise ---------- *)
+exercise-line  = { ws } , exercise-spec ;
+
+exercise-spec  = exercise-name , ws , sets-reps , [ ws , weight-clause ] ;
+
+exercise-name  = name-word , { ws , name-word } ;  (* letters + interior spaces; *)
+name-word      = letter , { letter } ;             (* never ends in whitespace   *)
+
+(* ---------- Sets × Reps ---------- *)
+sets-reps      = sets , "x" , reps ;
+sets           = integer ;
+reps           = rep-count
+               | rep-list
+               | time-reps ;
+rep-count      = integer ;
+rep-list       = "[" , integer , { "," , integer } , "]" ;
+time-reps      = integer , "sec" ;                 (* uniform only — no time list *)
+
+(* ---------- Weight ---------- *)
+weight-clause  = "@" , { ws } , weight-value , [ unit ] ;
+weight-value   = weight-number
+               | weight-list ;
+weight-number  = integer ;
+weight-list    = "[" , integer , { "," , integer } , "]" ;
+unit           = "lbs" | "kg" ;                    (* omitted ⇒ defaults to lbs   *)
+
+(* ---------- Date ---------- *)
+date           = mm , "/" , dd , "/" , yy ;
+mm             = digit , digit ;
+dd             = digit , digit ;
+yy             = digit , digit ;
+
+(* ---------- Terminals ---------- *)
+integer        = digit , { digit } ;
+free-text      = { any-char } ;
+ws             = ( " " | tab ) , { " " | tab } ; (* one or more spaces/tabs *)
+newline        = "\n" | "\r\n" ;
+letter         = "A".."Z" | "a".."z" ;
+digit          = "0".."9" ;
+any-char       = ? any character except newline ? ;
+tab            = ? horizontal tab (U+0009) ? ;
