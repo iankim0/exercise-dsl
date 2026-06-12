@@ -1,13 +1,16 @@
-import React from 'react'
+import React, { useState } from 'react'
 import type { StoredWorkout } from '../types.ts'
 import type { SetEntry, ExerciseEntry } from '../../dsl/ast.ts'
+import { encodeWorkoutLink, shareOrDownloadWorkout } from '../shareWorkout.ts'
 
 interface Props {
   workout: StoredWorkout
-  onEdit: () => void
-  onEditDSL: () => void
   onBack: () => void
-  onDelete: () => void
+  readOnly?: boolean
+  onAddToWorkouts?: () => void
+  onEdit?: () => void
+  onEditDSL?: () => void
+  onDelete?: () => void
 }
 
 const MONTH_NAMES = [
@@ -62,9 +65,23 @@ function ExerciseTable({ exercise }: { exercise: ExerciseEntry }) {
   )
 }
 
-export default function WorkoutView({ workout, onEdit, onEditDSL, onBack, onDelete }: Props) {
+export default function WorkoutView({ workout, onBack, readOnly, onAddToWorkouts, onEdit, onEditDSL, onDelete }: Props) {
   const { entry } = workout
   const hasContent = entry.exercises.length > 0 || entry.supersets.length > 0
+  const [shareOpen, setShareOpen] = useState(false)
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle')
+
+  async function handleCopyLink() {
+    const url = encodeWorkoutLink(workout.raw)
+    try {
+      await navigator.clipboard.writeText(url)
+    } catch {
+      prompt('Copy this link:', url)
+      return
+    }
+    setCopyStatus('copied')
+    setTimeout(() => setCopyStatus('idle'), 2000)
+  }
 
   return (
     <div className="workout-wrap">
@@ -73,6 +90,10 @@ export default function WorkoutView({ workout, onEdit, onEditDSL, onBack, onDele
           ‹ Back
         </button>
       </div>
+
+      {readOnly && (
+        <div className="shared-banner">Shared workout — not saved to your library</div>
+      )}
 
       <h1 className="workout-date">{formatDate(entry.date)}</h1>
       {entry.note && <p className="workout-note">{entry.note}</p>}
@@ -116,19 +137,39 @@ export default function WorkoutView({ workout, onEdit, onEditDSL, onBack, onDele
         </div>
       )}
 
-      <div className="workout-actions">
-        <button className="btn-primary" onClick={onEdit}>Edit Workout</button>
-        <button className="btn-ghost" onClick={onEditDSL}>Edit DSL</button>
-        <button
-          className="btn-ghost"
-          onClick={() => {
-            if (confirm('Delete this workout?')) onDelete()
-          }}
-          style={{ marginLeft: 'auto', color: '#ef4444', borderColor: '#3f1515' }}
-        >
-          Delete
-        </button>
-      </div>
+      {readOnly ? (
+        <div className="workout-actions">
+          <button className="btn-primary" onClick={onAddToWorkouts}>Add to my workouts</button>
+        </div>
+      ) : (
+        <>
+          <div className="workout-actions">
+            <button className="btn-primary" onClick={onEdit}>Edit Workout</button>
+            <button className="btn-ghost" onClick={onEditDSL}>Edit DSL</button>
+            <button className="btn-ghost" onClick={() => setShareOpen(o => !o)}>
+              {shareOpen ? 'Close' : 'Share'}
+            </button>
+            <button
+              className="btn-ghost"
+              onClick={() => { if (confirm('Delete this workout?')) onDelete?.() }}
+              style={{ marginLeft: 'auto', color: '#ef4444', borderColor: '#3f1515' }}
+            >
+              Delete
+            </button>
+          </div>
+
+          {shareOpen && (
+            <div className="share-menu">
+              <button className="share-menu-btn" onClick={handleCopyLink}>
+                {copyStatus === 'copied' ? 'Copied!' : 'Copy Link'}
+              </button>
+              <button className="share-menu-btn" onClick={() => shareOrDownloadWorkout(entry)}>
+                {'share' in navigator ? 'Share Image' : 'Save Image'}
+              </button>
+            </div>
+          )}
+        </>
+      )}
     </div>
   )
 }

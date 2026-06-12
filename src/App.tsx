@@ -6,9 +6,23 @@ import WorkoutView from './components/WorkoutView.tsx'
 import DSLEditor from './components/DSLEditor.tsx'
 import VisualEditor from './components/VisualEditor.tsx'
 import type { WorkoutEntry } from '../dsl/ast.ts'
+import { parseWorkout } from '../dsl/parser.ts'
+import { decodeWorkoutLink } from './shareWorkout.ts'
 
 export default function App() {
-  const [view, setView] = useState<View>({ type: 'calendar' })
+  const [view, setView] = useState<View>(() => {
+    const w = new URLSearchParams(window.location.search).get('w')
+    if (w) {
+      try {
+        const raw = decodeWorkoutLink(w)
+        const { entry } = parseWorkout(raw)
+        return { type: 'shared', raw, entry }
+      } catch {
+        // malformed param — fall through
+      }
+    }
+    return { type: 'calendar' }
+  })
   const [workouts, setWorkouts] = useState<Record<string, StoredWorkout>>(() => loadWorkouts())
 
   // Sync workouts from localStorage on focus (in case another tab changed it)
@@ -68,6 +82,21 @@ export default function App() {
             workouts={workouts}
             onNavigate={navigate}
             onImported={() => setWorkouts(loadWorkouts())}
+          />
+        )}
+
+        {view.type === 'shared' && (
+          <WorkoutView
+            workout={{ id: '__shared__', raw: view.raw, entry: view.entry }}
+            readOnly
+            onBack={() => {
+              history.replaceState({}, '', window.location.pathname)
+              navigate({ type: 'calendar' })
+            }}
+            onAddToWorkouts={() => {
+              handleSave(view.raw, view.entry)
+              history.replaceState({}, '', window.location.pathname)
+            }}
           />
         )}
 

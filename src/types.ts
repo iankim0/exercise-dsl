@@ -9,6 +9,7 @@ export type StoredWorkout = {
 export type View =
   | { type: 'calendar' }
   | { type: 'workout'; id: string }
+  | { type: 'shared'; raw: string; entry: WorkoutEntry }
   | { type: 'add'; prefillDate?: string }
   | { type: 'edit'; id: string }
   | { type: 'editDSL'; id: string }
