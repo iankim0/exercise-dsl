@@ -1,20 +1,27 @@
-# Workout DSL
+# LIFT
 
-A plain-text language for logging and planning workout sessions. Write a session in a simple shorthand, and the parser converts it into a structured JSON object that the app uses to render a formatted workout view.
+Most workout apps get in the way. Tapping through menus, searching an exercise database, adjusting a slider for each set — by the time you've logged a warmup you've lost your rest time. They're built for browsing, not for athletes who already know what they're doing.
 
----
+LIFT takes a different approach: you write your workout the same way you'd jot it on a whiteboard. One line per exercise, a consistent shorthand for sets and reps, and the app handles the rest. It's fast enough to log mid-session and flexible enough to plan a full week in advance.
 
-## How it works
-
-Each session is a block of plain text — one line per exercise, with a few special prefixes for metadata. The parser reads it top to bottom and produces a single session object. Unrecognized or incomplete lines are silently skipped, so you can write a partial plan and fill in the rest later.
+**[Try it →](https://exercise-dsl.vercel.app)**
 
 ---
 
-## Line types
+## The language
+
+A session is plain text — one line per exercise. Write it before your workout as a plan, fill in weights after, or log everything in real time.
+
+```
+D: 06/15/25
+N: Felt strong today
+Front Squat 4x5 @ [185,195,205,215]
+BB RDL 3x8 @ 135
+S: Curls 3x10 @ 50, Skull crushers 3x10 @ 60
+Weighted Plank 3x45sec @ 25lbs
+```
 
 ### Date — `D: MM/DD/YY`
-
-Marks the date of the session.
 
 ```
 D: 06/15/25
@@ -22,15 +29,13 @@ D: 06/15/25
 
 ### Exercise — `<name> <sets>x<reps> [@ <weight> [unit]]`
 
-The core of the language. The name is any sequence of letters and spaces. Sets and reps use the `NxM` format. Weight is optional — omitting it leaves the value as `0`, which is useful for planning a session before you know what you'll lift.
-
 ```
 Front Squat 4x5 @ 185
 ```
 
-### Superset — `S: <exercise>, <exercise>, ...`
+Weight defaults to `0` when omitted — useful for writing a plan before you know what you'll lift. Decimals are supported (`@ 22.5kg`).
 
-Groups two or more exercises into a superset. Each exercise follows the same `<name> NxM [@ weight]` format, separated by commas.
+### Superset — `S: <exercise>, <exercise>, ...`
 
 ```
 S: Curls 3x10 @ 50, Skull crushers 3x10 @ 60
@@ -38,53 +43,30 @@ S: Curls 3x10 @ 50, Skull crushers 3x10 @ 60
 
 ### Note — `N: <free text>`
 
-Attaches a free-text note to the session. If there are multiple `N:` lines, the last one wins.
-
 ```
 N: Felt strong today, consider bumping weight next session.
 ```
 
 ### Comments — `// <text>`
 
-Lines starting with `//` are ignored entirely.
-
 ```
-// This was a deload week
+// Deload week
 ```
 
 ---
 
-## Exercise syntax in depth
+## Reps and weights
 
-```
-<name> <sets>x<reps> [@ <weight> [unit]]
-```
+Both reps and weight accept either a single value (applied to all sets) or a bracketed list (one value per set).
 
-### Reps
-
-| Format | Meaning | Example |
+| Format | Example | Meaning |
 |---|---|---|
-| `N` | Same rep count every set | `3x5` → 3 sets of 5 |
-| `[a,b,c,...]` | Different reps per set | `3x[5,3,1]` → 5, 3, 1 reps |
-| `Nsec` | Timed sets (seconds) | `3x45sec` → 3 × 45-second holds |
+| Uniform | `3x5 @ 185` | 3 sets of 5 at 185 |
+| Per-set reps | `3x[5,3,1] @ 225` | Sets of 5, 3, 1 |
+| Per-set weight | `3x5 @ [185,195,205]` | Weight increases each set |
+| Timed | `3x45sec` | 3 × 45-second holds |
 
-The number of values in a rep list must match the set count.
-
-### Weight
-
-| Format | Meaning | Example |
-|---|---|---|
-| `@ N` | Same weight every set | `@ 135` |
-| `@ [a,b,c,...]` | Different weight per set | `@ [135,155,185]` |
-| *(omitted)* | Unspecified — defaults to `0` | `Pull Ups 3x8` |
-
-Decimal weights are supported: `@ 22.5kg`.
-
-The number of values in a weight list must match the set count.
-
-### Unit
-
-Append `lbs` or `kg` after the weight. Defaults to `lbs` when omitted. The unit can be placed after the closing bracket of a list or on any element within the list — the first unit found is used for all sets in that exercise.
+Units are `lbs` (default) or `kg`. Place the unit after the number or anywhere inside a list — the first one found applies to all sets in that exercise.
 
 ```
 Front Squat 3x5 @ [135,155,185]lbs
@@ -95,21 +77,19 @@ Hang Power Snatch 3x3 @ [55kg,60,65]
 
 ## Planning ahead
 
-Because weight defaults to `0` when omitted, you can write a full session plan before the workout and fill in the weights afterward:
+Because weight defaults to `0`, you can sketch a session before you lift and fill in the numbers after:
 
 ```
 D: 06/15/25
-S: PC 5x3, Pull Ups 3x6
 Front Squat 4x5
 BB RDL 3x8
 Weighted Plank 3x45sec
 ```
 
-After the session, add the weights and re-parse:
+Then after the session:
 
 ```
 D: 06/15/25
-S: PC 5x3 @ [100,105,110,115,120], Pull Ups 3x6
 Front Squat 4x5 @ [185,195,205,215]
 BB RDL 3x8 @ 135
 Weighted Plank 3x45sec @ 25lbs
@@ -117,7 +97,7 @@ Weighted Plank 3x45sec @ 25lbs
 
 ---
 
-## Full example
+## Full examples
 
 ```
 D: 05/30/25
