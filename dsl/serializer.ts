@@ -44,12 +44,18 @@ export function serialize(entry: WorkoutEntry): string {
   if (entry.date) lines.push(`D: ${entry.date}`)
   if (entry.note) lines.push(`N: ${entry.note}`)
 
-  for (const ex of entry.exercises) {
-    lines.push(serializeExercise(ex))
-  }
+  // Use items (ordered) if present; fall back to exercises-then-supersets for legacy data.
+  const items = entry.items ?? [
+    ...entry.exercises.map((exercise) => ({ kind: 'exercise' as const, exercise })),
+    ...entry.supersets.map((superset) => ({ kind: 'superset' as const, superset })),
+  ]
 
-  for (const ss of entry.supersets) {
-    lines.push(`S: ${ss.exercises.map(serializeExercise).join(', ')}`)
+  for (const item of items) {
+    if (item.kind === 'exercise') {
+      lines.push(serializeExercise(item.exercise))
+    } else {
+      lines.push(`S: ${item.superset.exercises.map(serializeExercise).join(', ')}`)
+    }
   }
 
   return lines.join('\n')

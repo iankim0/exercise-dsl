@@ -1,7 +1,8 @@
 import React, { useState } from 'react'
 import type { StoredWorkout } from '../types.ts'
-import type { WorkoutEntry, ExerciseEntry, SetEntry, Unit } from '../../dsl/ast.ts'
+import type { WorkoutEntry, ExerciseEntry, SetEntry, Unit, WorkoutItem } from '../../dsl/ast.ts'
 import { serialize } from '../../dsl/serializer.ts'
+import { parseWorkout } from '../../dsl/parser.ts'
 
 interface Props {
   workout: StoredWorkout
@@ -29,6 +30,30 @@ function formatDate(dateStr: string | undefined): string {
 /** Deep-clone a WorkoutEntry so mutations don't affect the original */
 function cloneEntry(entry: WorkoutEntry): WorkoutEntry {
   return JSON.parse(JSON.stringify(entry))
+}
+
+/**
+ * Rebuild the items array with fresh object references from the updated
+ * exercises/supersets arrays, preserving the original insertion order.
+ */
+function rebuildItems(
+  exercises: WorkoutEntry['exercises'],
+  supersets: WorkoutEntry['supersets'],
+  prevItems: WorkoutItem[] | undefined,
+): WorkoutItem[] {
+  if (!prevItems || prevItems.length === 0) {
+    return [
+      ...exercises.map((exercise) => ({ kind: 'exercise' as const, exercise })),
+      ...supersets.map((superset) => ({ kind: 'superset' as const, superset })),
+    ]
+  }
+  let exIdx = 0
+  let ssIdx = 0
+  return prevItems.map((item) =>
+    item.kind === 'exercise'
+      ? { kind: 'exercise' as const, exercise: exercises[exIdx++] }
+      : { kind: 'superset' as const, superset: supersets[ssIdx++] },
+  )
 }
 
 interface SetRowProps {
@@ -133,8 +158,15 @@ export default function VisualEditor({ workout, onSave, onCancel }: Props) {
   }
 
   function handleSave() {
-    const raw = serialize(editedEntry)
-    onSave({ ...workout, raw, entry: { ...editedEntry, raw } })
+    // Rebuild items with fresh references before serializing so order is preserved.
+    const rebuiltEntry = {
+      ...editedEntry,
+      items: rebuildItems(editedEntry.exercises, editedEntry.supersets, editedEntry.items),
+    }
+    const raw = serialize(rebuiltEntry)
+    // Re-parse so the stored entry has a fresh, consistent items array.
+    const { entry } = parseWorkout(raw)
+    onSave({ ...workout, raw, entry: { ...entry, raw } })
   }
 
   return (

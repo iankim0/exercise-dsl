@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import type { StoredWorkout } from '../types.ts'
-import type { SetEntry, ExerciseEntry } from '../../dsl/ast.ts'
+import type { SetEntry, ExerciseEntry, WorkoutItem } from '../../dsl/ast.ts'
 import { encodeWorkoutLink, shareOrDownloadWorkout } from '../shareWorkout.ts'
 
 interface Props {
@@ -70,6 +70,14 @@ export default function WorkoutView({ workout, onBack, readOnly, onAddToWorkouts
   const hasContent = entry.exercises.length > 0 || entry.supersets.length > 0
   const [shareOpen, setShareOpen] = useState(false)
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle')
+  const [copyDslStatus, setCopyDslStatus] = useState<'idle' | 'copied'>('idle')
+
+  // Ordered items: use items array if present (new entries), otherwise fall back
+  // to exercises-then-supersets for entries stored before this feature landed.
+  const items: WorkoutItem[] = entry.items ?? [
+    ...entry.exercises.map((exercise) => ({ kind: 'exercise' as const, exercise })),
+    ...entry.supersets.map((superset) => ({ kind: 'superset' as const, superset })),
+  ]
 
   async function handleCopyLink() {
     const url = encodeWorkoutLink(workout.raw)
@@ -81,6 +89,17 @@ export default function WorkoutView({ workout, onBack, readOnly, onAddToWorkouts
     }
     setCopyStatus('copied')
     setTimeout(() => setCopyStatus('idle'), 2000)
+  }
+
+  async function handleCopyDsl() {
+    try {
+      await navigator.clipboard.writeText(workout.raw)
+    } catch {
+      prompt('Copy this DSL:', workout.raw)
+      return
+    }
+    setCopyDslStatus('copied')
+    setTimeout(() => setCopyDslStatus('idle'), 2000)
   }
 
   return (
@@ -104,36 +123,31 @@ export default function WorkoutView({ workout, onBack, readOnly, onAddToWorkouts
         </p>
       )}
 
-      {/* Standalone exercises */}
-      {entry.exercises.length > 0 && (
-        <div className={entry.supersets.length > 0 ? 'section-gap' : ''} style={{ marginTop: entry.note ? '0' : '24px' }}>
-          {entry.exercises.map((ex, i) => (
-            <div key={i} className="card">
-              <div className="exercise-name">{ex.name}</div>
-              <ExerciseTable exercise={ex} />
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Supersets */}
-      {entry.supersets.length > 0 && (
-        <div className="section-gap">
-          {entry.supersets.map((ss, si) => (
-            <div key={si} className="card">
-              <div className="card-header">
-                <span className="badge badge-accent">Superset</span>
+      {/* Items in source order */}
+      {items.length > 0 && (
+        <div style={{ marginTop: entry.note ? '0' : '24px' }}>
+          {items.map((item, i) =>
+            item.kind === 'exercise' ? (
+              <div key={i} className="card">
+                <div className="exercise-name">{item.exercise.name}</div>
+                <ExerciseTable exercise={item.exercise} />
               </div>
-              <div className="superset-exercises">
-                {ss.exercises.map((ex, ei) => (
-                  <div key={ei}>
-                    <div className="superset-exercise-name">{ex.name}</div>
-                    <ExerciseTable exercise={ex} />
-                  </div>
-                ))}
+            ) : (
+              <div key={i} className="card">
+                <div className="card-header">
+                  <span className="badge badge-accent">Superset</span>
+                </div>
+                <div className="superset-exercises">
+                  {item.superset.exercises.map((ex, ei) => (
+                    <div key={ei}>
+                      <div className="superset-exercise-name">{ex.name}</div>
+                      <ExerciseTable exercise={ex} />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </div>
       )}
 
@@ -146,6 +160,9 @@ export default function WorkoutView({ workout, onBack, readOnly, onAddToWorkouts
           <div className="workout-actions">
             <button className="btn-primary" onClick={onEdit}>Edit Workout</button>
             <button className="btn-ghost" onClick={onEditDSL}>Edit DSL</button>
+            <button className="btn-ghost" onClick={handleCopyDsl}>
+              {copyDslStatus === 'copied' ? 'Copied!' : 'Copy DSL'}
+            </button>
             <button className="btn-ghost" onClick={() => setShareOpen(o => !o)}>
               {shareOpen ? 'Close' : 'Share'}
             </button>

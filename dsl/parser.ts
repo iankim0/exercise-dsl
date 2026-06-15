@@ -39,6 +39,7 @@ import type {
   Reps,
   Warning,
   ParseResult,
+  WorkoutItem,
 } from "./ast";
 
 /* ------------------------------------------------------------------ *
@@ -236,9 +237,11 @@ function parseExerciseSpec(
  */
 export function parseWorkout(input: string): ParseResult {
   const warnings: Warning[] = [];
+  const items: WorkoutItem[] = [];
   const entry: WorkoutEntry = {
     exercises: [],
     supersets: [],
+    items,
     raw: input,
   };
 
@@ -274,7 +277,11 @@ export function parseWorkout(input: string): ParseResult {
         const ex = parseExerciseSpec(seg, idx, warnings);
         if (ex) exercises.push(ex);
       }
-      if (exercises.length > 0) entry.supersets.push({ exercises });
+      if (exercises.length > 0) {
+        const superset = { exercises };
+        entry.supersets.push(superset);
+        items.push({ kind: "superset", superset });
+      }
       return;
     }
 
@@ -282,6 +289,7 @@ export function parseWorkout(input: string): ParseResult {
     const ex = parseExerciseSpec(line, idx, warnings);
     if (ex) {
       entry.exercises.push(ex);
+      items.push({ kind: "exercise", exercise: ex });
       return;
     }
 

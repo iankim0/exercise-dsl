@@ -63,11 +63,26 @@ export type SupersetEntry = {
 };
 
 /**
+ * A single ordered item in a workout — either a standalone exercise or a
+ * superset. The `items` array on `WorkoutEntry` preserves the source order so
+ * the UI can render them exactly as the user typed them.
+ */
+export type WorkoutItem =
+  | { kind: "exercise"; exercise: ExerciseEntry }
+  | { kind: "superset"; superset: SupersetEntry };
+
+/**
  * One session — the top-level product of parsing.
  */
 export type WorkoutEntry = {
   exercises: ExerciseEntry[];
   supersets: SupersetEntry[];
+  /**
+   * Exercises and supersets in their original source order. Always present on
+   * freshly-parsed entries; absent on entries loaded from older stored data
+   * (use `exercises` + `supersets` as fallback).
+   */
+  items: WorkoutItem[];
   /** Optional; at most one per session. */
   note?: string;
   /** MM/DD/YY as typed. Absent until a `D:` line is written. */

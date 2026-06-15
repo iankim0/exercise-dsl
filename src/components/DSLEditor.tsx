@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react'
-import type { WorkoutEntry, SetEntry, ExerciseEntry } from '../../dsl/ast.ts'
+import type { WorkoutEntry, SetEntry, ExerciseEntry, WorkoutItem } from '../../dsl/ast.ts'
 import { parseWorkout } from '../../dsl/parser.ts'
 
 interface Props {
@@ -48,6 +48,11 @@ export default function DSLEditor({ initialRaw, onSave, onCancel }: Props) {
 
   const hasContent = entry.exercises.length > 0 || entry.supersets.length > 0
 
+  const items: WorkoutItem[] = entry.items ?? [
+    ...entry.exercises.map((exercise) => ({ kind: 'exercise' as const, exercise })),
+    ...entry.supersets.map((superset) => ({ kind: 'superset' as const, superset })),
+  ]
+
   return (
     <div className="editor-wrap">
       <div className="editor-label">Write your workout</div>
@@ -80,28 +85,28 @@ export default function DSLEditor({ initialRaw, onSave, onCancel }: Props) {
         <p className="preview-empty">Nothing to preview yet</p>
       ) : (
         <>
-          {entry.exercises.map((ex, i) => (
-            <div key={i} className="card">
-              <div className="exercise-name">{ex.name}</div>
-              <PreviewExerciseTable exercise={ex} />
-            </div>
-          ))}
-
-          {entry.supersets.map((ss, si) => (
-            <div key={si} className="card">
-              <div className="card-header">
-                <span className="badge badge-accent">Superset</span>
+          {items.map((item, i) =>
+            item.kind === 'exercise' ? (
+              <div key={i} className="card">
+                <div className="exercise-name">{item.exercise.name}</div>
+                <PreviewExerciseTable exercise={item.exercise} />
               </div>
-              <div className="superset-exercises">
-                {ss.exercises.map((ex, ei) => (
-                  <div key={ei}>
-                    <div className="superset-exercise-name">{ex.name}</div>
-                    <PreviewExerciseTable exercise={ex} />
-                  </div>
-                ))}
+            ) : (
+              <div key={i} className="card">
+                <div className="card-header">
+                  <span className="badge badge-accent">Superset</span>
+                </div>
+                <div className="superset-exercises">
+                  {item.superset.exercises.map((ex, ei) => (
+                    <div key={ei}>
+                      <div className="superset-exercise-name">{ex.name}</div>
+                      <PreviewExerciseTable exercise={ex} />
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </>
       )}
 
