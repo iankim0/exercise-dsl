@@ -71,7 +71,6 @@ export default function WorkoutView({ workout, onBack, readOnly, onAddToWorkouts
   const hasContent = entry.exercises.length > 0 || entry.supersets.length > 0
   const [shareOpen, setShareOpen] = useState(false)
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copied'>('idle')
-  const [copyDslStatus, setCopyDslStatus] = useState<'idle' | 'copied'>('idle')
 
   // Ordered items: use items array if present (new entries), otherwise fall back
   // to exercises-then-supersets for entries stored before this feature landed.
@@ -90,17 +89,6 @@ export default function WorkoutView({ workout, onBack, readOnly, onAddToWorkouts
     }
     setCopyStatus('copied')
     setTimeout(() => setCopyStatus('idle'), 2000)
-  }
-
-  async function handleCopyDsl() {
-    try {
-      await navigator.clipboard.writeText(workout.raw)
-    } catch {
-      prompt('Copy this DSL:', workout.raw)
-      return
-    }
-    setCopyDslStatus('copied')
-    setTimeout(() => setCopyDslStatus('idle'), 2000)
   }
 
   return (
@@ -161,9 +149,6 @@ export default function WorkoutView({ workout, onBack, readOnly, onAddToWorkouts
           <div className="workout-actions">
             <button className="btn-primary" onClick={onEdit}>Edit Workout</button>
             <button className="btn-ghost" onClick={onEditDSL}>Edit DSL</button>
-            <button className="btn-ghost" onClick={handleCopyDsl}>
-              {copyDslStatus === 'copied' ? 'Copied!' : 'Copy DSL'}
-            </button>
             {onDuplicate && (
               <button className="btn-ghost" onClick={onDuplicate}>
                 Duplicate
