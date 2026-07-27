@@ -9,6 +9,14 @@ import type { WorkoutEntry } from '../dsl/ast.ts'
 import { parseWorkout } from '../dsl/parser.ts'
 import { decodeWorkoutLink } from './shareWorkout.ts'
 
+/** Drop the `D: ...` line so a duplicated workout doesn't collide with the original's ID. */
+function stripDateLine(raw: string): string {
+  return raw
+    .split('\n')
+    .filter((line) => !/^d\s*:/i.test(line))
+    .join('\n')
+}
+
 export default function App() {
   const [view, setView] = useState<View>(() => {
     const w = new URLSearchParams(window.location.search).get('w')
@@ -117,13 +125,14 @@ export default function App() {
               onEdit={() => navigate({ type: 'edit', id: view.id })}
               onEditDSL={() => navigate({ type: 'editDSL', id: view.id })}
               onDelete={() => handleDelete(view.id)}
+              onDuplicate={() => navigate({ type: 'add', prefillRaw: stripDateLine(workout.raw) })}
             />
           )
         })()}
 
         {view.type === 'add' && (
           <DSLEditor
-            initialRaw={view.prefillDate ? `D: ${view.prefillDate}\n` : ''}
+            initialRaw={view.prefillRaw ?? (view.prefillDate ? `D: ${view.prefillDate}\n` : '')}
             onSave={handleSave}
             onCancel={() => navigate({ type: 'calendar' })}
           />

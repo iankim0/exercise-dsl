@@ -92,8 +92,14 @@ describe("exercise names", () => {
 });
 
 describe("special lines", () => {
-  it("D: is stored verbatim", () => {
+  it("D: is stored verbatim when already zero-padded", () => {
     expect(parseWorkout("D: 06/01/26").entry.date).toBe("06/01/26");
+  });
+
+  it("D: zero-pads unpadded month/day", () => {
+    expect(parseWorkout("D: 6/1/26").entry.date).toBe("06/01/26");
+    expect(parseWorkout("D: 7/28/26").entry.date).toBe("07/28/26");
+    expect(parseWorkout("D: 12/9/26").entry.date).toBe("12/09/26");
   });
 
   it("D: can appear anywhere; last one wins", () => {

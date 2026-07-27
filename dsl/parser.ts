@@ -123,6 +123,14 @@ function parseWeightList(token: string): { values: number[]; unit: Unit | null }
 const isList = (tok: string) => tok.trimStart().startsWith("[");
 const isTimed = (tok: string) => /sec$/i.test(tok);
 
+/** Zero-pad `M/D/YY` to `MM/DD/YY`; left unchanged if it doesn't match that shape. */
+function normalizeDate(raw: string): string {
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{2})$/.exec(raw);
+  if (!m) return raw;
+  const [, mm, dd, yy] = m;
+  return `${mm.padStart(2, "0")}/${dd.padStart(2, "0")}/${yy}`;
+}
+
 /**
  * Resolve a uniform value or a per-set list into exactly `sets` values.
  * On a length mismatch, fall back to the first value for every set and report
@@ -255,10 +263,11 @@ export function parseWorkout(input: string): ParseResult {
     // 2. comment
     if (line.startsWith("//")) return;
 
-    // 3. D: date — stored verbatim; format is validated by the checker
+    // 3. D: date — M/D/YY is normalized to zero-padded MM/DD/YY so it matches
+    // the calendar's lookup keys; anything else is stored verbatim.
     let m = DATE_RE.exec(line);
     if (m) {
-      entry.date = m[1].trim();
+      entry.date = normalizeDate(m[1].trim());
       return;
     }
 

@@ -11,6 +11,7 @@ interface Props {
   onEdit?: () => void
   onEditDSL?: () => void
   onDelete?: () => void
+  onDuplicate?: () => void
 }
 
 const MONTH_NAMES = [
@@ -65,7 +66,7 @@ function ExerciseTable({ exercise }: { exercise: ExerciseEntry }) {
   )
 }
 
-export default function WorkoutView({ workout, onBack, readOnly, onAddToWorkouts, onEdit, onEditDSL, onDelete }: Props) {
+export default function WorkoutView({ workout, onBack, readOnly, onAddToWorkouts, onEdit, onEditDSL, onDelete, onDuplicate }: Props) {
   const { entry } = workout
   const hasContent = entry.exercises.length > 0 || entry.supersets.length > 0
   const [shareOpen, setShareOpen] = useState(false)
@@ -163,6 +164,11 @@ export default function WorkoutView({ workout, onBack, readOnly, onAddToWorkouts
             <button className="btn-ghost" onClick={handleCopyDsl}>
               {copyDslStatus === 'copied' ? 'Copied!' : 'Copy DSL'}
             </button>
+            {onDuplicate && (
+              <button className="btn-ghost" onClick={onDuplicate}>
+                Duplicate
+              </button>
+            )}
             <button className="btn-ghost" onClick={() => setShareOpen(o => !o)}>
               {shareOpen ? 'Close' : 'Share'}
             </button>
