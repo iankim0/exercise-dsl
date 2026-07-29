@@ -149,7 +149,7 @@ function drawExerciseContent(
     ctx.fillText(ex.name, x, cy + 15)
   } else {
     ctx.font = '600 13px system-ui, -apple-system, sans-serif'
-    ctx.fillStyle = C.textSecondary
+    ctx.fillStyle = C.textPrimary
     ctx.fillText(ex.name.toUpperCase(), x, cy + 13)
   }
   cy += NAME_H
