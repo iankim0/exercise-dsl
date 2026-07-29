@@ -1,4 +1,11 @@
-import type { WorkoutEntry, ExerciseEntry, SetEntry } from '../dsl/ast.ts'
+import type { WorkoutEntry, ExerciseEntry, SetEntry, SupersetEntry, WorkoutItem } from '../dsl/ast.ts'
+
+function orderedItems(entry: WorkoutEntry): WorkoutItem[] {
+  return entry.items ?? [
+    ...entry.exercises.map((exercise) => ({ kind: 'exercise' as const, exercise })),
+    ...entry.supersets.map((superset) => ({ kind: 'superset' as const, superset })),
+  ]
+}
 
 // ---------- URL encode / decode ----------
 
@@ -35,6 +42,40 @@ function formatWeight(weight: SetEntry['weight']): string {
   return weight.value === 0 ? '—' : `${weight.value} ${weight.unit}`
 }
 
+function repsEqual(a: SetEntry['reps'], b: SetEntry['reps']): boolean {
+  if (typeof a === 'number' || typeof b === 'number') return a === b
+  return a.seconds === b.seconds
+}
+
+function weightEqual(a: SetEntry['weight'], b: SetEntry['weight']): boolean {
+  return a.value === b.value && a.unit === b.unit
+}
+
+// A row to render in the shared-image set table: either one real set, or a
+// single summary row standing in for several identical sets (e.g. a plain
+// "3x8 @ 135lbs" collapses to one "3×" row instead of three near-duplicate
+// ones). The in-app view always lists every set individually — this
+// collapsing is share-image-only.
+type DisplayRow = {
+  label: string
+  reps: SetEntry['reps']
+  weight: SetEntry['weight']
+}
+
+function getDisplayRows(ex: ExerciseEntry): DisplayRow[] {
+  const sets = ex.sets
+  if (sets.length > 1) {
+    const first = sets[0]
+    const uniform = sets.every(
+      (s) => repsEqual(s.reps, first.reps) && weightEqual(s.weight, first.weight)
+    )
+    if (uniform) {
+      return [{ label: `${sets.length}×`, reps: first.reps, weight: first.weight }]
+    }
+  }
+  return sets.map((s) => ({ label: String(s.setNumber), reps: s.reps, weight: s.weight }))
+}
+
 function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return ''
   const parts = dateStr.split('/')
@@ -64,13 +105,113 @@ function roundRect(
   ctx.closePath()
 }
 
-function measureExerciseCardHeight(ctx: CanvasRenderingContext2D, ex: ExerciseEntry): number {
-  // name row + header row + each set row + padding
-  const ROW_H = 26
-  const NAME_H = 28
-  const HEADER_H = 22
-  const CARD_PAD = 16
-  return CARD_PAD + NAME_H + HEADER_H + ex.sets.length * ROW_H + CARD_PAD
+const ROW_H = 26
+const NAME_H = 28
+const HEADER_H = 22
+const CARD_PAD = 16
+const PILL_H = 22
+const PILL_GAP = 14
+const EXERCISE_GAP = 20
+
+function measureExerciseContentHeight(ex: ExerciseEntry): number {
+  return NAME_H + HEADER_H + getDisplayRows(ex).length * ROW_H
+}
+
+function measureExerciseCardHeight(ex: ExerciseEntry): number {
+  return CARD_PAD * 2 + measureExerciseContentHeight(ex)
+}
+
+function measureSupersetCardHeight(ss: SupersetEntry): number {
+  let h = CARD_PAD * 2 + PILL_H + PILL_GAP
+  ss.exercises.forEach((ex, i) => {
+    h += measureExerciseContentHeight(ex)
+    if (i < ss.exercises.length - 1) h += EXERCISE_GAP
+  })
+  return h
+}
+
+// Draws an exercise's name + set table starting at (x, y) within a content
+// area of width w. Returns the y position immediately below the content.
+function drawExerciseContent(
+  ctx: CanvasRenderingContext2D,
+  ex: ExerciseEntry,
+  x: number,
+  y: number,
+  w: number,
+  style: 'standalone' | 'superset'
+): number {
+  let cy = y
+
+  // exercise name
+  if (style === 'standalone') {
+    ctx.font = '700 15px system-ui, -apple-system, sans-serif'
+    ctx.fillStyle = C.textPrimary
+    ctx.fillText(ex.name, x, cy + 15)
+  } else {
+    ctx.font = '600 13px system-ui, -apple-system, sans-serif'
+    ctx.fillStyle = C.textSecondary
+    ctx.fillText(ex.name.toUpperCase(), x, cy + 13)
+  }
+  cy += NAME_H
+
+  // column headers
+  ctx.font = '600 10px system-ui, -apple-system, sans-serif'
+  ctx.fillStyle = C.textSecondary
+  ctx.fillText('SET', x, cy + 11)
+  ctx.textAlign = 'center'
+  ctx.fillText('REPS', x + w / 2, cy + 11)
+  ctx.textAlign = 'right'
+  ctx.fillText('WEIGHT', x + w, cy + 11)
+  ctx.textAlign = 'left'
+  cy += HEADER_H
+
+  // set rows (collapsed to one summary row when every set is identical)
+  for (const row of getDisplayRows(ex)) {
+    // row divider
+    ctx.strokeStyle = C.border
+    ctx.lineWidth = 0.5
+    ctx.beginPath()
+    ctx.moveTo(x, cy)
+    ctx.lineTo(x + w, cy)
+    ctx.stroke()
+
+    ctx.font = '400 13px system-ui, -apple-system, sans-serif'
+    ctx.fillStyle = C.textSecondary
+    ctx.fillText(row.label, x, cy + 18)
+
+    ctx.fillStyle = C.textPrimary
+    ctx.textAlign = 'center'
+    ctx.fillText(formatReps(row.reps), x + w / 2, cy + 18)
+    ctx.textAlign = 'right'
+    ctx.fillText(formatWeight(row.weight), x + w, cy + 18)
+    ctx.textAlign = 'left'
+
+    cy += ROW_H
+  }
+
+  return cy
+}
+
+// Draws a pill-shaped label badge with its top-left at (x, y). Returns the
+// pill's width so callers can lay out anything that follows it on the line.
+function drawPill(ctx: CanvasRenderingContext2D, label: string, x: number, y: number): number {
+  ctx.font = '700 10px system-ui, -apple-system, sans-serif'
+  const padX = 8
+  const w = ctx.measureText(label).width + padX * 2
+
+  roundRect(ctx, x, y, w, PILL_H, PILL_H / 2)
+  ctx.fillStyle = 'rgba(249, 115, 22, 0.12)'
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(249, 115, 22, 0.25)'
+  ctx.lineWidth = 1
+  ctx.stroke()
+
+  ctx.fillStyle = C.accent
+  ctx.textBaseline = 'middle'
+  ctx.fillText(label, x + padX, y + PILL_H / 2 + 1)
+  ctx.textBaseline = 'alphabetic'
+
+  return w
 }
 
 function drawExerciseCard(
@@ -78,23 +219,10 @@ function drawExerciseCard(
   ex: ExerciseEntry,
   x: number,
   y: number,
-  w: number,
-  labelTag?: string
+  w: number
 ): number {
-  const ROW_H = 26
-  const NAME_H = 28
-  const HEADER_H = 22
-  const CARD_PAD = 16
-  const h = measureExerciseCardHeight(ctx, ex)
+  const h = measureExerciseCardHeight(ex)
 
-  // tag label above card (for supersets)
-  if (labelTag) {
-    ctx.font = '600 10px system-ui, -apple-system, sans-serif'
-    ctx.fillStyle = C.accent
-    ctx.fillText(labelTag, x + CARD_PAD, y - 6)
-  }
-
-  // card background
   roundRect(ctx, x, y, w, h, CARD_RADIUS)
   ctx.fillStyle = C.card
   ctx.fill()
@@ -102,48 +230,41 @@ function drawExerciseCard(
   ctx.lineWidth = 1
   ctx.stroke()
 
+  drawExerciseContent(ctx, ex, x + CARD_PAD, y + CARD_PAD, w - CARD_PAD * 2, 'standalone')
+
+  return y + h
+}
+
+// Draws all exercises in a superset inside a single enclosing card, mirroring
+// how the in-app view groups them (one card, one SUPERSET badge, exercises
+// stacked inside) instead of one card per exercise.
+function drawSupersetCard(
+  ctx: CanvasRenderingContext2D,
+  ss: SupersetEntry,
+  x: number,
+  y: number,
+  w: number
+): number {
+  const h = measureSupersetCardHeight(ss)
+
+  roundRect(ctx, x, y, w, h, CARD_RADIUS)
+  ctx.fillStyle = C.card
+  ctx.fill()
+  ctx.strokeStyle = C.border
+  ctx.lineWidth = 1
+  ctx.stroke()
+
+  const contentX = x + CARD_PAD
+  const contentW = w - CARD_PAD * 2
   let cy = y + CARD_PAD
 
-  // exercise name
-  ctx.font = '700 15px system-ui, -apple-system, sans-serif'
-  ctx.fillStyle = C.textPrimary
-  ctx.fillText(ex.name, x + CARD_PAD, cy + 15)
-  cy += NAME_H
+  drawPill(ctx, 'SUPERSET', contentX, cy)
+  cy += PILL_H + PILL_GAP
 
-  // column headers
-  ctx.font = '600 10px system-ui, -apple-system, sans-serif'
-  ctx.fillStyle = C.textSecondary
-  ctx.fillText('SET', x + CARD_PAD, cy + 11)
-  ctx.textAlign = 'center'
-  ctx.fillText('REPS', x + w / 2, cy + 11)
-  ctx.textAlign = 'right'
-  ctx.fillText('WEIGHT', x + w - CARD_PAD, cy + 11)
-  ctx.textAlign = 'left'
-  cy += HEADER_H
-
-  // set rows
-  for (const set of ex.sets) {
-    // row divider
-    ctx.strokeStyle = C.border
-    ctx.lineWidth = 0.5
-    ctx.beginPath()
-    ctx.moveTo(x + CARD_PAD, cy)
-    ctx.lineTo(x + w - CARD_PAD, cy)
-    ctx.stroke()
-
-    ctx.font = '400 13px system-ui, -apple-system, sans-serif'
-    ctx.fillStyle = C.textSecondary
-    ctx.fillText(String(set.setNumber), x + CARD_PAD, cy + 18)
-
-    ctx.fillStyle = C.textPrimary
-    ctx.textAlign = 'center'
-    ctx.fillText(formatReps(set.reps), x + w / 2, cy + 18)
-    ctx.textAlign = 'right'
-    ctx.fillText(formatWeight(set.weight), x + w - CARD_PAD, cy + 18)
-    ctx.textAlign = 'left'
-
-    cy += ROW_H
-  }
+  ss.exercises.forEach((ex, i) => {
+    cy = drawExerciseContent(ctx, ex, contentX, cy, contentW, 'superset')
+    if (i < ss.exercises.length - 1) cy += EXERCISE_GAP
+  })
 
   return y + h
 }
@@ -153,23 +274,14 @@ function renderWorkoutCanvas(entry: WorkoutEntry): HTMLCanvasElement {
   const canvas = document.createElement('canvas')
 
   // First pass: measure total height
-  const measureCtx = canvas.getContext('2d')!
-  measureCtx.font = '400 13px system-ui'
-
   let totalHeight = 80 // header + divider
   if (entry.note) totalHeight += 28
   totalHeight += 16 // gap before first card
 
-  for (const ex of entry.exercises) {
-    totalHeight += measureExerciseCardHeight(measureCtx, ex) + 12
-  }
-  for (const ss of entry.supersets) {
-    // "SUPERSET" label
-    totalHeight += 20
-    for (const ex of ss.exercises) {
-      totalHeight += measureExerciseCardHeight(measureCtx, ex) + 8
-    }
-    totalHeight += 12
+  for (const item of orderedItems(entry)) {
+    totalHeight += item.kind === 'exercise'
+      ? measureExerciseCardHeight(item.exercise) + 12
+      : measureSupersetCardHeight(item.superset) + 12
   }
   totalHeight += 40 // footer
 
@@ -223,20 +335,11 @@ function renderWorkoutCanvas(entry: WorkoutEntry): HTMLCanvasElement {
 
   const cardW = W - PAD * 2
 
-  // standalone exercises
-  for (const ex of entry.exercises) {
-    y = drawExerciseCard(ctx, ex, PAD, y, cardW) + 12
-  }
-
-  // supersets
-  for (const ss of entry.supersets) {
-    let firstCard = true
-    for (const ex of ss.exercises) {
-      const label = firstCard ? 'SUPERSET' : undefined
-      y = drawExerciseCard(ctx, ex, PAD, y + (firstCard ? 20 : 0), cardW, label) + 8
-      firstCard = false
-    }
-    y += 12
+  // exercises and supersets, in source order
+  for (const item of orderedItems(entry)) {
+    y = item.kind === 'exercise'
+      ? drawExerciseCard(ctx, item.exercise, PAD, y, cardW) + 12
+      : drawSupersetCard(ctx, item.superset, PAD, y, cardW) + 12
   }
 
   // footer
